@@ -1,16 +1,15 @@
-# server/worker.py
-import pika
-import json
+import pika #Importa a biblioteca para o RabbitMQ
+import json 
 import redis
 import time
-from datetime import datetime
-from fpdf import FPDF
-from fpdf.enums import XPos, YPos
+from datetime import datetime #Usamos para capturar o momento em que o PDF está sendo gerado
+from fpdf import FPDF #Responsável por criar e estruturar o PDF em branco
+from fpdf.enums import XPos, YPos #Responsável pelo design do PDF (controla onde o cursor deve ir)
 
 # Conexão com o Redis
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
-def callback(ch, method, properties, body):
+def callback(ch, method, properties, body): #Disparada pelo RabbitMQ toda vez que um novo pedido de PDF chega na fila
     dados = json.loads(body)
     task_id = dados['task_id']
     cidade = dados['cidade'].title() 
@@ -18,31 +17,31 @@ def callback(ch, method, properties, body):
 
     print(f"[*] Recebido! Gerando guia Premium para {cidade}...")
     
-    time.sleep(5) 
+    time.sleep(3) 
 
     dica = "Leve roupas leves e protetor solar!" if temp > 20 else "Leve casaco e guarda-chuva!"
 
-    pdf = FPDF()
-    pdf.add_page()
+    pdf = FPDF() #Instancia um novo documento PDF na memória 
+    pdf.add_page() #Cria uma pág em branco
     
-    # 1. MOLDURA DA PÁGINA (Contorno Azul Indigo)
+    # MOLDURA DA PÁGINA 
     pdf.set_draw_color(79, 70, 229)
     pdf.set_line_width(1)
     pdf.rect(5, 5, 200, 287)
     
-    # 2. TÍTULO DO PDF (Dividido em duas linhas centralizadas)
+    # TÍTULO DO PDF 
     pdf.set_fill_color(79, 70, 229) 
     pdf.set_text_color(255, 255, 255)
     
-    # Linha 1: "Guia de Viagem" (Um pouco menor)
+    # Linha 1: "Guia de Viagem" 
     pdf.set_font("helvetica", style="B", size=16)
     pdf.cell(0, 12, text="Guia de Viagem", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C', fill=True)
     
-    # Linha 2: O nome da Cidade (Bem grande e em destaque)
+    # Linha 2: O nome da Cidade 
     pdf.set_font("helvetica", style="B", size=30)
     pdf.cell(0, 16, text=cidade, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C', fill=True)
     
-    # Adicionar a data de geração abaixo da faixa azul à direita
+    # Adiciona a data de geração 
     data_atual = datetime.now().strftime("%d/%m/%Y as %H:%M")
     pdf.set_text_color(148, 163, 184) # Cinza claro
     pdf.set_font("helvetica", style="I", size=10)
@@ -50,7 +49,7 @@ def callback(ch, method, properties, body):
     
     pdf.cell(0, 8, text="", new_x=XPos.LMARGIN, new_y=YPos.NEXT) # Espaço
     
-    # 3. SECÇÃO DA TEMPERATURA 
+    # TEMPERATURA 
     pdf.set_draw_color(226, 232, 240) 
     pdf.set_line_width(0.5)
     pdf.line(20, pdf.get_y(), 190, pdf.get_y()) # Linha superior
@@ -75,13 +74,13 @@ def callback(ch, method, properties, body):
     
     pdf.cell(0, 15, text="", new_x=XPos.LMARGIN, new_y=YPos.NEXT) # Espaço
     
-    # 4. DICA DE VIAGEM 
+    # DICA DE VIAGEM 
     pdf.set_text_color(255, 255, 255)
     pdf.set_fill_color(16, 185, 129)
     pdf.set_font("helvetica", style="B", size=16)
     pdf.cell(0, 15, text=f" Dica: {dica} ", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C', fill=True)
 
-    # 5. RODAPÉ DO PROJETO
+    # RODAPÉ DO PROJETO
     pdf.set_y(-25) 
     pdf.set_text_color(156, 163, 175)
     pdf.set_font("helvetica", style="I", size=9)
@@ -89,9 +88,9 @@ def callback(ch, method, properties, body):
 
     # SALVAR E AVISAR
     nome_arquivo = f"guia_{cidade}_{task_id[:8]}.pdf"
-    pdf.output(nome_arquivo)
+    pdf.output(nome_arquivo) #Salva o arquivo no disco rígido 
 
-    dados_conclusao = {
+    dados_conclusao = { #Avisa que a tarefa terminou com sucesso
         "status": "Concluido!",
         "completado": True,
         "arquivo": nome_arquivo
@@ -101,8 +100,8 @@ def callback(ch, method, properties, body):
     print(f"[+] PDF finalizado e salvo como {nome_arquivo}")
 
 # Conectar e escutar a fila
-conexao = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-canal = conexao.channel()
+conexao = pika.BlockingConnection(pika.ConnectionParameters('localhost')) #Estabelece a conexão de rede com o serviço do RabbitMQ
+canal = conexao.channel() #Abre o canal de tráfego de dados
 canal.queue_declare(queue='fila_pdf')
 
 print(' [*] Worker aguardando tarefas no RabbitMQ. Pressione CTRL+C para sair.')
