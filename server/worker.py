@@ -20,7 +20,25 @@ def callback(ch, method, properties, body): #Disparada pelo RabbitMQ toda vez qu
     
     time.sleep(3) 
 
-    dica = "Leve roupas leves e protetor solar!" if temp > 20 else "Leve casaco e guarda-chuva!"
+    # Dicas por faixa de temperatura
+    if temp >= 28:
+        faixa = "Clima Quente"
+        roupa     = "Roupas leves, claras e de tecido respiravel."
+        atividade = "Praia, piscina, parques ao ar livre e passeios noturnos."
+        evitar    = "Exercicios intensos ao sol entre 10h e 16h."
+        cor_faixa = (239, 68, 68)   # vermelho
+    elif temp >= 18:
+        faixa = "Clima Ameno"
+        roupa     = "Camiseta com uma camada leve por cima, jeans ou calca."
+        atividade = "Caminhadas, turismo urbano, ciclovias e mercados locais."
+        evitar    = "Sair sem uma jaqueta leve para a noite."
+        cor_faixa = (16, 185, 129)  # verde
+    else:
+        faixa = "Clima Frio"
+        roupa     = "Casaco, cachecol, luvas e roupas em camadas."
+        atividade = "Museus, cafes, restaurantes e passeios curtos."
+        evitar    = "Ficar exposto ao vento sem protecao adequada."
+        cor_faixa = (59, 130, 246)  # azul
 
     pdf = FPDF() #Instancia um novo documento PDF na memória 
     pdf.add_page() #Cria uma pág em branco
@@ -75,11 +93,37 @@ def callback(ch, method, properties, body): #Disparada pelo RabbitMQ toda vez qu
     
     pdf.cell(0, 15, text="", new_x=XPos.LMARGIN, new_y=YPos.NEXT) # Espaço
     
-    # DICA DE VIAGEM 
+    # DICAS DE VIAGEM
+    # Cabeçalho da faixa de clima
     pdf.set_text_color(255, 255, 255)
-    pdf.set_fill_color(16, 185, 129)
-    pdf.set_font("helvetica", style="B", size=16)
-    pdf.cell(0, 15, text=f" Dica: {dica} ", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C', fill=True)
+    pdf.set_fill_color(*cor_faixa)
+    pdf.set_font("helvetica", style="B", size=15)
+    pdf.cell(0, 12, text=f"  {faixa}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L', fill=True)
+
+    pdf.cell(0, 4, text="", new_x=XPos.LMARGIN, new_y=YPos.NEXT)  # espaço
+
+    # Linha: Roupa
+    pdf.set_text_color(30, 30, 30)
+    pdf.set_font("helvetica", style="B", size=11)
+    pdf.cell(0, 7, text="  O que vestir:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("helvetica", style="", size=11)
+    pdf.cell(0, 7, text=f"  {roupa}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.cell(0, 3, text="", new_x=XPos.LMARGIN, new_y=YPos.NEXT)  # espaço
+
+    # Linha: Atividades
+    pdf.set_font("helvetica", style="B", size=11)
+    pdf.cell(0, 7, text="  Atividades recomendadas:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("helvetica", style="", size=11)
+    pdf.cell(0, 7, text=f"  {atividade}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.cell(0, 3, text="", new_x=XPos.LMARGIN, new_y=YPos.NEXT)  # espaço
+
+    # Linha: Evitar
+    pdf.set_font("helvetica", style="B", size=11)
+    pdf.cell(0, 7, text="  O que evitar:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("helvetica", style="", size=11)
+    pdf.cell(0, 7, text=f"  {evitar}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # RODAPÉ DO PROJETO
     pdf.set_y(-25) 
