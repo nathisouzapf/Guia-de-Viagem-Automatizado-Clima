@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # painel de administração: http://localhost:15672 (guest/guest)
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: server
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENWEATHER_API_KEY=bf5b84a1ad77e03471167e21c1201c42
+    volumes:
+      - pdfs:/app/pdfs
+    depends_on:
+      - redis
+      - rabbitmq
+
+  worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.worker
+    container_name: worker
+    environment:
+      - OPENWEATHER_API_KEY=bf5b84a1ad77e03471167e21c1201c42
+    volumes:
+      - pdfs:/app/pdfs
+    depends_on:
+      - redis
+      - rabbitmq
+
+volumes:
+  pdfs:

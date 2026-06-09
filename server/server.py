@@ -17,14 +17,14 @@ app.add_middleware(
 )
 
 # Conexão com o Redis 
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 
 #API
-chave_clima = "bf5b84a1ad77e03471167e21c1201c42"
+chave_clima = os.getenv("OPENWEATHER_API_KEY", "bf5b84a1ad77e03471167e21c1201c42")
 
 def enviar_para_fila(mensagem):
     # Conecta no RabbitMQ e manda a mensagem para a fila 'fila_pdf'
-    conexao = pika.BlockingConnection(pika.ConnectionParameters('localhost')) #Abre a conexão com o servidor local do RabbitMQ
+    conexao = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq')) #Abre a conexão com o servidor local do RabbitMQ
     canal = conexao.channel() #Cria um canal dentro da conexão para trafegar os comandos de envio de dados
     canal.queue_declare(queue='fila_pdf')
     canal.basic_publish(exchange='', routing_key='fila_pdf', body=json.dumps(mensagem)) #Diz para qual fila a mensagrm deve ir
@@ -81,7 +81,7 @@ def checar_status(task_id: str):
 # Rota para fazer o download do PDF
 @app.get("/download/{nome_arquivo}") #Cria a rota final onde o botão de download irá apontar
 def baixar_pdf(nome_arquivo: str):
-    caminho_arquivo = f"./{nome_arquivo}" #Mostra o caminho onde o arquivo deve estar gravado na pasta do projeto
+    caminho_arquivo = f"pdfs/{nome_arquivo}" #Mostra o caminho onde o arquivo deve estar gravado na pasta do projeto
     
     if os.path.exists(caminho_arquivo): #Checa se existe o arquivo PDF no disco rígido
         return FileResponse(     #Retorna o download do PDF 

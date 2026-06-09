@@ -1,3 +1,4 @@
+import os
 import pika #Importa a biblioteca para o RabbitMQ
 import json 
 import redis
@@ -7,7 +8,7 @@ from fpdf import FPDF #Responsável por criar e estruturar o PDF em branco
 from fpdf.enums import XPos, YPos #Responsável pelo design do PDF (controla onde o cursor deve ir)
 
 # Conexão com o Redis
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 
 def callback(ch, method, properties, body): #Disparada pelo RabbitMQ toda vez que um novo pedido de PDF chega na fila
     dados = json.loads(body)
@@ -88,7 +89,8 @@ def callback(ch, method, properties, body): #Disparada pelo RabbitMQ toda vez qu
 
     # SALVAR E AVISAR
     nome_arquivo = f"guia_{cidade}_{task_id[:8]}.pdf"
-    pdf.output(nome_arquivo) #Salva o arquivo no disco rígido 
+    os.makedirs("pdfs", exist_ok=True)
+    pdf.output(f"pdfs/{nome_arquivo}") #Salva o arquivo no disco rígido 
 
     dados_conclusao = { #Avisa que a tarefa terminou com sucesso
         "status": "Concluido!",
@@ -100,7 +102,7 @@ def callback(ch, method, properties, body): #Disparada pelo RabbitMQ toda vez qu
     print(f"[+] PDF finalizado e salvo como {nome_arquivo}")
 
 # Conectar e escutar a fila
-conexao = pika.BlockingConnection(pika.ConnectionParameters('localhost')) #Estabelece a conexão de rede com o serviço do RabbitMQ
+conexao = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq')) #Estabelece a conexão de rede com o serviço do RabbitMQ
 canal = conexao.channel() #Abre o canal de tráfego de dados
 canal.queue_declare(queue='fila_pdf')
 
